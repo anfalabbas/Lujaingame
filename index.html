@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>لعبة لُجَيْن - 100 مرحلة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; overflow: hidden; background: #87ceeb; font-family: sans-serif; }
+    .game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(#87ceeb, #fff);
+      overflow: hidden;
+    }
+    .mario {
+      position: absolute;
+      width: 50px;
+      height: 70px;
+      background-image: url('https://i.ibb.co/N7zn2F9/mario-face.png');
+      background-size: cover;
+      bottom: 0;
+      left: 50px;
+      z-index: 10;
+    }
+    .platform {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 40px;
+      background-color: #8B4513;
+    }
+    .coin, .enemy {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+    .coin { background-image: url('https://i.ibb.co/FW4cyt0/coin.png'); }
+    .enemy { background-image: url('https://i.ibb.co/Yy4FyKZ/goomba.png'); bottom: 40px; }
+    #message {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 22px;
+      display: none;
+      z-index: 100;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div style="text-align: center;">
+    <img src="lujain_cover.png" alt="لعبة لُجَيْن" style="width: 100%; max-width: 800px; margin-top: 10px; border-radius: 10px;">
+  </div>
+  <div class="game-container" id="game">
+    <div class="mario" id="mario"></div>
+    <div class="platform"></div>
+    <div id="message">مبروك يا لُجَيْن! خلصتي المرحلة الأولى!</div>
+  </div>
+
+  <audio id="jumpSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+  <audio id="coinSound" src="https://www.soundjay.com/button/beep-10.wav"></audio>
+  <audio id="winSound" src="https://www.soundjay.com/button/button-3.wav"></audio>
+  <audio id="bgMusic" src="https://vgmsite.com/soundtracks/super-mario-bros/lcxdugjn/01%20-%20Overworld.mp3" loop autoplay></audio>
+
+  <script>
+    const mario = document.getElementById("mario");
+    const jumpSound = document.getElementById("jumpSound");
+    const coinSound = document.getElementById("coinSound");
+    const winSound = document.getElementById("winSound");
+    const message = document.getElementById("message");
+    const game = document.getElementById("game");
+
+    let isJumping = false;
+    let level = localStorage.getItem("lujain_level") ? parseInt(localStorage.getItem("lujain_level")) : 1;
+    let maxLevels = 100;
+
+    function createLevel(lv) {
+      game.querySelectorAll(".coin, .enemy").forEach(e => e.remove());
+      message.style.display = "none";
+
+      for (let i = 0; i < lv; i++) {
+        const coin = document.createElement("div");
+        coin.className = "coin";
+        coin.style.top = `${100 + Math.random() * 300}px`;
+        coin.style.left = `${200 + Math.random() * 700}px`;
+        coin.dataset.collected = "false";
+        game.appendChild(coin);
+      }
+
+      for (let i = 0; i < Math.floor(lv / 5); i++) {
+        const enemy = document.createElement("div");
+        enemy.className = "enemy";
+        enemy.style.left = `${300 + Math.random() * 500}px`;
+        game.appendChild(enemy);
+      }
+    }
+
+    window.addEventListener("keydown", function(e) {
+      if ((e.code === "Space" || e.code === "ArrowUp") && !isJumping) {
+        isJumping = true;
+        jumpSound.play();
+        mario.style.transition = "bottom 0.4s";
+        mario.style.bottom = "150px";
+        setTimeout(() => {
+          mario.style.bottom = "0px";
+          setTimeout(() => { isJumping = false; }, 400);
+        }, 400);
+      }
+
+      const marioRect = mario.getBoundingClientRect();
+      const coins = document.querySelectorAll(".coin");
+      coins.forEach(coin => {
+        const rect = coin.getBoundingClientRect();
+        if (
+          coin.dataset.collected === "false" &&
+          marioRect.left < rect.right &&
+          marioRect.right > rect.left &&
+          marioRect.top < rect.bottom &&
+          marioRect.bottom > rect.top
+        ) {
+          coin.dataset.collected = "true";
+          coin.style.display = "none";
+          coinSound.play();
+        }
+      });
+
+      const allCollected = [...coins].every(c => c.dataset.collected === "true");
+      if (allCollected && message.style.display === "none") {
+        winSound.play();
+        message.innerHTML = `مرحى يا لُجَيْن! خلصتي المرحلة ${level}!<br>جاهزة للمرحلة اللي بعدها؟ اضغطي أي زر!`;
+        message.style.display = "block";
+        if (level < maxLevels) {
+          level++;
+          localStorage.setItem("lujain_level", level);
+          window.addEventListener("keydown", nextLevel, { once: true });
+        } else {
+          message.innerHTML = "لُجَيْن!! خلصتي كل المراحل! بطلة!";
+        }
+      }
+    });
+
+    function nextLevel() {
+      createLevel(level);
+    }
+
+    createLevel(level);
+  </script>
+</body>
+</html>
